@@ -1,0 +1,166 @@
+{
+  "brand_identity": {
+    "name": "Kinetix",
+    "tone": "Efficient, Intelligent, Fluid, Native-Feel",
+    "archetype": "The Performance Pro (Mobility Variant)",
+    "keywords": ["Speed", "Flow", "Precision", "Baku"],
+    "theme_mode": "light", 
+    "theme_strategy": "Light mode map base for clarity, with Dark mode elements for 'AI' features (Radar)."
+  },
+  "typography": {
+    "headings": {
+      "family": "Plus Jakarta Sans, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Use for all page titles, bottom sheet headers, and key metrics.",
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Use for list items, descriptions, and functional text."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["400"],
+      "usage": "Use for arrival times, ticket codes, and coordinates."
+    }
+  },
+  "colors": {
+    "primary": {
+      "name": "Kinetix Blue",
+      "hex": "#0066FF",
+      "tailwind": "bg-blue-600",
+      "usage": "Primary CTA, Active States, Brand Elements"
+    },
+    "secondary": {
+      "name": "Slate Chrome",
+      "hex": "#F1F5F9",
+      "tailwind": "bg-slate-100",
+      "usage": "Backgrounds, Input Fields, Secondary Buttons"
+    },
+    "transport_modes": {
+      "bus": {
+        "hex": "#10B981",
+        "tailwind": "bg-emerald-500",
+        "note": "Matches BakuBus Eco branding"
+      },
+      "metro": {
+        "hex": "#EF4444",
+        "tailwind": "bg-red-500",
+        "note": "Matches Baku Metro Logo"
+      },
+      "walk": {
+        "hex": "#64748B",
+        "tailwind": "bg-slate-500",
+        "note": "Standard walking path"
+      },
+      "ai_smart": {
+        "hex": "#7C3AED",
+        "tailwind": "bg-violet-600",
+        "note": "Kinetix AI recommended mixed route"
+      }
+    },
+    "crowding_levels": {
+      "low": "#22C55E",
+      "medium": "#F59E0B",
+      "high": "#EF4444"
+    },
+    "neutral": {
+      "surface": "#FFFFFF",
+      "text_main": "#0F172A",
+      "text_muted": "#64748B",
+      "border": "#E2E8F0"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "heavy": "bg-white/80 backdrop-blur-xl border-white/20 shadow-lg",
+      "light": "bg-white/60 backdrop-blur-md border-white/40"
+    },
+    "shadows": {
+      "floating": "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+      "card": "shadow-sm hover:shadow-md transition-shadow duration-200"
+    },
+    "border_radius": {
+      "pill": "rounded-full",
+      "card": "rounded-2xl",
+      "sheet": "rounded-t-[32px]"
+    }
+  },
+  "layout_strategies": {
+    "mobile_shell": {
+      "container": "max-w-md mx-auto bg-slate-50 h-[100dvh] relative overflow-hidden shadow-2xl",
+      "map_layer": "absolute inset-0 z-0",
+      "ui_layer": "relative z-10 pointer-events-none",
+      "ui_children": "pointer-events-auto"
+    },
+    "bottom_sheet": {
+      "initial_state": "h-[40vh]",
+      "expanded_state": "h-[90vh]",
+      "drag_handle": "w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-4"
+    },
+    "floating_search": {
+      "position": "absolute top-4 left-4 right-4 z-50",
+      "style": "glassmorphism-heavy rounded-full p-2 flex items-center shadow-floating"
+    }
+  },
+  "components_and_patterns": {
+    "map": {
+      "library": "Leaflet (react-leaflet)",
+      "tile_provider": "CartoDB Voyager (Light) for clean look",
+      "attribution": "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>"
+    },
+    "icons": {
+      "library": "Lucide React",
+      "style": "Stroke width 2px, rounded joins",
+      "usage": {
+        "bus": "Bus",
+        "metro": "TrainFront",
+        "walk": "Footprints",
+        "search": "Search",
+        "menu": "Menu",
+        "user": "User",
+        "ticket": "Ticket",
+        "radar": "Radio",
+        "settings": "Settings",
+        "location": "MapPin"
+      }
+    },
+    "cards": {
+      "ticket_card": "bg-white rounded-2xl p-6 border border-slate-100 shadow-sm relative overflow-hidden. Use a 'cutout' circle effect on sides to mimic real tickets.",
+      "route_card": "bg-white rounded-xl p-4 mb-3 border border-slate-100 active:scale-[0.98] transition-transform"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "hero_bg",
+        "url": "https://images.unsplash.com/photo-1762099099919-56f161966e4c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxiYWt1JTIwY2l0eSUyMHNreWxpbmUlMjBmbGFtZSUyMHRvd2VycyUyMG1vZGVybiUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NzM0ODY4Mjl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Baku Skyline for Welcome/Loading Screen"
+      },
+      {
+        "category": "bus_promo",
+        "url": "https://images.unsplash.com/photo-1767990495590-b8fde2270e02?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBlbGVjdHJpYyUyMGJ1cyUyMGNpdHklMjBzdHJlZXR8ZW58MHx8fHwxNzczNDg2ODI4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern Green Electric Bus for 'Bus Mode' promo or ticket bg"
+      },
+      {
+        "category": "metro_promo",
+        "url": "https://images.unsplash.com/photo-1765355683024-c638d3704fb5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBzdWJ3YXklMjB0cmFpbiUyMHN0YXRpb24lMjBwbGF0Zm9ybXxlbnwwfHx8fDE3NzM0ODY4Mjl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Subway Station for 'Metro Mode' promo"
+      }
+    ]
+  },
+  "universal_guidelines_for_main_agent": [
+    "DO NOT use 'purple' or 'teal' gradients unless specifically for the 'AI Route' indicator.",
+    "Mobile-First means 'Thumb-Friendly'. Primary actions must be in the bottom 50% of the screen.",
+    "The Map is the hero. Ensure UI elements (Search, Sheets) obscure the map as little as possible.",
+    "Use 'Lucide React' for all icons.",
+    "Implement the 'Bottom Sheet' pattern for route details. It should feel physics-based (drag to dismiss).",
+    "Ticket Page: Use a 'skeuomorphic-lite' design (dashed lines, cutout circles) to make tickets feel real.",
+    "Live Radar: This page should switch to a Darker Map Mode to make the 'Heatmap' colors (Green/Red) pop.",
+    "Ensure the app container is centered on desktop with 'max-w-md mx-auto' to simulate a mobile phone view.",
+    "Install 'lucide-react' and 'react-leaflet' and 'leaflet' if not present.",
+    "Use 'clsx' or 'tailwind-merge' for conditional classes.",
+    "Add 'data-testid' to all interactive elements."
+  ]
+}
