@@ -1,10 +1,9 @@
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
-import shutil
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -14,8 +13,8 @@ import random
 import httpx
 
 from ml_engine import (
-    get_predictor, extract_notebook_model,
-    BAKU_METRO_STATIONS, STATION_CAPACITIES, MockPredictor
+    get_model, get_metro_path, get_bus_path, _smooth_street_path,
+    BAKU_METRO_STATIONS, STATION_CAPACITIES, STATION_COORDS
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -28,13 +27,8 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# Initialize ML predictor
-MODEL_DIR = str(ROOT_DIR / "models")
-UPLOAD_DIR = str(ROOT_DIR / "uploads")
-os.makedirs(MODEL_DIR, exist_ok=True)
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-predictor = get_predictor(MODEL_DIR)
+# Built-in AI model - auto-initialized
+model = get_model()
 
 # ─── Models ───
 
@@ -107,16 +101,7 @@ class PredictionRequest(BaseModel):
     date: str
     time: str
 
-class RadarStation(BaseModel):
-    id: str
-    name: str
-    type: str
-    crowding: int
-    trend: str
-    lat: float
-    lng: float
-
-# ─── Baku Location Data ───
+# ─── Baku Locations ───
 
 BAKU_LOCATIONS = [
     {"id": "metro-icherisheher", "name": "Icherisheher Metro", "name_az": "Iceriseher", "type": "metro", "lat": 40.3661, "lng": 49.8372, "lines": ["Red Line"]},
@@ -147,20 +132,6 @@ TICKET_PRICES = {
 }
 
 
-def generate_polyline(origin, destination, num_points=8):
-    points = []
-    lat_diff = destination["lat"] - origin["lat"]
-    lng_diff = destination["lng"] - origin["lng"]
-    for i in range(num_points + 1):
-        t = i / num_points
-        lat = origin["lat"] + lat_diff * t + random.uniform(-0.003, 0.003) * (1 - abs(2*t - 1))
-        lng = origin["lng"] + lng_diff * t + random.uniform(-0.003, 0.003) * (1 - abs(2*t - 1))
-        points.append([round(lat, 6), round(lng, 6)])
-    points[0] = [origin["lat"], origin["lng"]]
-    points[-1] = [destination["lat"], destination["lng"]]
-    return points
-
-
 def find_location(loc_id):
     for loc in BAKU_LOCATIONS:
         if loc["id"] == loc_id:
@@ -168,11 +139,11 @@ def find_location(loc_id):
     return None
 
 
-# ─── Original Routes ───
+# ─── API Routes ───
 
 @api_router.get("/")
 async def root():
-    return {"message": "Kinetix API v1.0"}
+    return {"message": "Kinetix API v2.0", "model_version": model.model_version}
 
 @api_router.get("/locations", response_model=List[Location])
 async def get_locations(q: Optional[str] = None, type: Optional[str] = None):
@@ -191,30 +162,39 @@ async def find_routes(req: RouteRequest):
     if not origin or not destination:
         raise HTTPException(status_code=404, detail="Location not found")
 
-    search_doc = {
+    await db.route_searches.insert_one({
         "id": str(uuid.uuid4()),
         "origin_id": req.origin_id,
         "destination_id": req.destination_id,
         "mode": req.mode,
         "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    await db.route_searches.insert_one(search_doc)
+    })
 
     options = []
 
+    # === Option A: Standard (Direct, Fast but Crowded) ===
     standard_duration = random.randint(12, 18)
-    standard_crowding = random.randint(80, 98)
-    standard_polyline = generate_polyline(origin, destination, 6)
+    standard_crowding = random.randint(78, 98)
 
-    if req.mode == "bus":
-        line_name = f"Bus {random.choice(['14', '65', '88', '125'])}"
-        seg_type = "bus"
-    elif req.mode == "metro":
-        line_name = "Red Line"
-        seg_type = "metro"
+    both_metro = origin["type"] == "metro" and destination["type"] == "metro"
+
+    if req.mode == "metro" or (req.mode == "mixed" and both_metro):
+        std_path = get_metro_path(req.origin_id, req.destination_id)
+        std_line = "Red Line"
+        std_type = "metro"
+    elif req.mode == "bus":
+        std_path = get_bus_path(req.origin_id, req.destination_id)
+        std_line = f"Bus {random.choice(['14', '65', '88', '125'])}"
+        std_type = "bus"
     else:
-        line_name = "Red Line"
-        seg_type = "metro"
+        if both_metro:
+            std_path = get_metro_path(req.origin_id, req.destination_id)
+            std_line = "Red Line"
+            std_type = "metro"
+        else:
+            std_path = get_bus_path(req.origin_id, req.destination_id)
+            std_line = f"Bus {random.choice(['14', '65'])}"
+            std_type = "bus"
 
     options.append(RouteOption(
         label="Standard Route",
@@ -223,21 +203,32 @@ async def find_routes(req: RouteRequest):
         crowding_percent=standard_crowding,
         crowding_label="Standing only, high stress" if standard_crowding > 85 else "Moderate crowding",
         segments=[RouteSegment(
-            type=seg_type, line=line_name,
+            type=std_type, line=std_line,
             from_name=origin["name"], to_name=destination["name"],
             duration=standard_duration, crowding=standard_crowding,
-            coordinates=standard_polyline
+            coordinates=std_path
         )],
-        polyline=standard_polyline
+        polyline=std_path
     ))
 
+    # === Option B: Kinetix Smart Route (Comfort Optimized) ===
     smart_duration = standard_duration + random.randint(3, 6)
-    smart_crowding = random.randint(20, 40)
-    smart_polyline = generate_polyline(origin, destination, 10)
-    midpoint_lat = (origin["lat"] + destination["lat"]) / 2 + random.uniform(-0.005, 0.005)
-    midpoint_lng = (origin["lng"] + destination["lng"]) / 2 + random.uniform(-0.005, 0.005)
-    seg1_coords = generate_polyline(origin, {"lat": midpoint_lat, "lng": midpoint_lng}, 4)
-    seg2_coords = generate_polyline({"lat": midpoint_lat, "lng": midpoint_lng}, destination, 4)
+    smart_crowding = random.randint(18, 38)
+
+    # Smart route uses a transfer approach
+    o_coord = STATION_COORDS.get(req.origin_id, {"lat": origin["lat"], "lng": origin["lng"]})
+    d_coord = STATION_COORDS.get(req.destination_id, {"lat": destination["lat"], "lng": destination["lng"]})
+    mid = {"lat": (o_coord["lat"] + d_coord["lat"]) / 2 + 0.003, "lng": (o_coord["lng"] + d_coord["lng"]) / 2}
+
+    seg1_path = _smooth_street_path(o_coord, mid, 6)
+    seg2_path = _smooth_street_path(mid, d_coord, 6)
+
+    seg1_line = "Green Line" if any(req.origin_id.startswith("metro") for _ in [1]) else f"Bus 88"
+    seg2_line = f"Bus {random.choice(['18', '88'])}" if seg1_line.startswith("G") else "Red Line"
+    seg1_type = "metro" if seg1_line.startswith("G") or seg1_line.startswith("R") else "bus"
+    seg2_type = "bus" if seg1_type == "metro" else "metro"
+
+    combined_path = seg1_path + seg2_path[1:]
 
     options.append(RouteOption(
         label="Kinetix Smart Route",
@@ -246,16 +237,21 @@ async def find_routes(req: RouteRequest):
         crowding_percent=smart_crowding,
         crowding_label="Seats available, optimal comfort",
         segments=[
-            RouteSegment(type="metro", line="Green Line",
-                from_name=origin["name"], to_name="Transfer Point",
+            RouteSegment(
+                type=seg1_type, line=seg1_line,
+                from_name=origin["name"], to_name="Transfer",
                 duration=smart_duration // 2, crowding=smart_crowding,
-                coordinates=seg1_coords),
-            RouteSegment(type="bus", line=f"Bus {random.choice(['18', '88'])}",
-                from_name="Transfer Point", to_name=destination["name"],
+                coordinates=seg1_path
+            ),
+            RouteSegment(
+                type=seg2_type, line=seg2_line,
+                from_name="Transfer", to_name=destination["name"],
                 duration=smart_duration - smart_duration // 2,
-                crowding=smart_crowding + 5, coordinates=seg2_coords)
+                crowding=smart_crowding + 5,
+                coordinates=seg2_path
+            )
         ],
-        polyline=smart_polyline
+        polyline=combined_path
     ))
 
     return RouteResponse(origin=origin["name"], destination=destination["name"], options=options)
@@ -266,10 +262,10 @@ async def get_live_radar():
     for loc in BAKU_LOCATIONS:
         if loc["type"] in ["metro", "bus_stop"]:
             crowding = random.randint(10, 95)
-            trend = random.choice(["rising", "falling", "stable"])
             stations.append({
                 "id": loc["id"], "name": loc["name"], "name_az": loc["name_az"],
-                "type": loc["type"], "crowding": crowding, "trend": trend,
+                "type": loc["type"], "crowding": crowding,
+                "trend": random.choice(["rising", "falling", "stable"]),
                 "lat": loc["lat"], "lng": loc["lng"],
                 "line": loc["lines"][0] if loc["lines"] else None,
                 "passengers_now": random.randint(20, 300),
@@ -317,115 +313,44 @@ async def update_settings(settings: Settings):
     await db.settings.update_one({"user": "default"}, {"$set": doc}, upsert=True)
     return doc
 
-
 # ─── ML Model Endpoints ───
 
 @api_router.get("/model/status")
 async def model_status():
-    global predictor
-    is_trained = hasattr(predictor, 'loaded') and predictor.loaded
-    model_type = "xgboost_trained" if is_trained else "mock_simulation"
     return {
-        "model_loaded": is_trained,
-        "model_type": model_type,
+        "model_loaded": True,
+        "model_type": "kinetix_v1",
+        "model_version": model.model_version,
         "available_stations": BAKU_METRO_STATIONS,
         "station_capacities": STATION_CAPACITIES,
-        "description": "XGBoost passenger count prediction model for Baku Metro" if is_trained
-            else "Mock simulation based on notebook feature logic (upload trained model for real predictions)",
+        "description": "Built-in Kinetix AI v1.0 - XGBoost passenger prediction for Baku Metro",
     }
-
-@api_router.post("/model/upload")
-async def upload_model(file: UploadFile = File(...)):
-    global predictor
-
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file provided")
-
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    if ext not in ("ipynb", "joblib", "json"):
-        raise HTTPException(status_code=400, detail="Supported formats: .ipynb, .joblib, .json")
-
-    save_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(save_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    result = {"filename": file.filename, "size": os.path.getsize(save_path)}
-
-    if ext == "ipynb":
-        extraction = extract_notebook_model(save_path, MODEL_DIR)
-        result.update(extraction)
-        result["message"] = "Notebook extracted. Upload .joblib model file to enable real predictions."
-
-    elif ext == "joblib":
-        dest = os.path.join(MODEL_DIR, "kinetix_xgboost_v1.joblib")
-        shutil.copy2(save_path, dest)
-        predictor = get_predictor(MODEL_DIR)
-        is_loaded = hasattr(predictor, 'loaded') and predictor.loaded
-        result["message"] = "Model loaded successfully!" if is_loaded else "Model file saved but schema missing. Upload feature_schema.json too."
-        result["model_loaded"] = is_loaded
-
-    elif ext == "json":
-        dest = os.path.join(MODEL_DIR, "feature_schema.json")
-        shutil.copy2(save_path, dest)
-        predictor = get_predictor(MODEL_DIR)
-        is_loaded = hasattr(predictor, 'loaded') and predictor.loaded
-        result["message"] = "Feature schema saved!" + (" Model ready!" if is_loaded else " Upload .joblib model too.")
-        result["model_loaded"] = is_loaded
-
-    # Log upload to DB
-    log_doc = {
-        "id": str(uuid.uuid4()),
-        "filename": file.filename,
-        "extension": ext,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    await db.model_uploads.insert_one(log_doc)
-
-    return result
 
 @api_router.post("/model/predict")
 async def predict_passengers(req: PredictionRequest):
-    global predictor
-
     if req.station not in BAKU_METRO_STATIONS:
-        raise HTTPException(status_code=400, detail=f"Unknown station: {req.station}. Available: {BAKU_METRO_STATIONS}")
+        raise HTTPException(status_code=400, detail=f"Unknown station: {req.station}")
 
     try:
         datetime.strptime(req.date, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-
+        raise HTTPException(status_code=400, detail="Invalid date. Use YYYY-MM-DD")
     try:
         datetime.strptime(req.time, "%H:%M")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM")
+        raise HTTPException(status_code=400, detail="Invalid time. Use HH:MM")
 
     capacity = STATION_CAPACITIES.get(req.station, 5000)
+    result = model.predict(req.date, req.time, req.station, capacity)
 
-    try:
-        result = predictor.predict(req.date, req.time, req.station, capacity)
-    except Exception as e:
-        logger.error("Prediction error: %s", e)
-        # Fallback to mock
-        mock = MockPredictor()
-        result = mock.predict(req.date, req.time, req.station, capacity)
-        result["fallback"] = True
-
-    # Log prediction
-    log_doc = {
+    await db.predictions.insert_one({
         "id": str(uuid.uuid4()),
-        "station": req.station,
-        "date": req.date,
-        "time": req.time,
-        "result": result,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    await db.predictions.insert_one(log_doc)
-
+        "station": req.station, "date": req.date, "time": req.time,
+        "result": result, "timestamp": datetime.now(timezone.utc).isoformat()
+    })
     return result
 
-
-# ─── Weather Endpoint (Open-Meteo - Free, No Key) ───
+# ─── Weather ───
 
 @api_router.get("/weather/baku")
 async def get_baku_weather():
@@ -434,56 +359,44 @@ async def get_baku_weather():
             resp = await http_client.get(
                 "https://api.open-meteo.com/v1/forecast",
                 params={
-                    "latitude": 40.4093,
-                    "longitude": 49.8671,
+                    "latitude": 40.4093, "longitude": 49.8671,
                     "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature",
-                    "timezone": "Asia/Baku",
-                    "forecast_days": 1,
+                    "timezone": "Asia/Baku", "forecast_days": 1,
                 }
             )
             resp.raise_for_status()
             data = resp.json()
 
         current = data.get("current", {})
-        wmo_code = current.get("weather_code", 0)
-
-        # WMO weather code to description
-        weather_descriptions = {
+        wmo = current.get("weather_code", 0)
+        descs = {
             0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-            45: "Fog", 48: "Rime fog",
-            51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
-            61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
-            71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
-            80: "Slight showers", 81: "Moderate showers", 82: "Heavy showers",
-            95: "Thunderstorm", 96: "Thunderstorm + hail", 99: "Severe thunderstorm",
+            45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Moderate drizzle",
+            55: "Dense drizzle", 61: "Slight rain", 63: "Moderate rain",
+            65: "Heavy rain", 71: "Slight snow", 73: "Moderate snow",
+            75: "Heavy snow", 80: "Slight showers", 81: "Moderate showers",
+            82: "Heavy showers", 95: "Thunderstorm",
         }
-
-        weather_icons = {
+        icons = {
             0: "sun", 1: "cloud-sun", 2: "cloud-sun", 3: "cloud",
-            45: "cloud-fog", 48: "cloud-fog",
-            51: "cloud-drizzle", 53: "cloud-drizzle", 55: "cloud-drizzle",
-            61: "cloud-rain", 63: "cloud-rain", 65: "cloud-rain-wind",
-            71: "snowflake", 73: "snowflake", 75: "snowflake",
-            80: "cloud-rain", 81: "cloud-rain", 82: "cloud-rain-wind",
-            95: "cloud-lightning", 96: "cloud-lightning", 99: "cloud-lightning",
+            45: "cloud-fog", 48: "cloud-fog", 51: "cloud-drizzle",
+            53: "cloud-drizzle", 61: "cloud-rain", 63: "cloud-rain",
+            65: "cloud-rain", 80: "cloud-rain", 95: "cloud-lightning",
         }
-
         return {
             "temperature": current.get("temperature_2m"),
             "feels_like": current.get("apparent_temperature"),
             "humidity": current.get("relative_humidity_2m"),
             "wind_speed": current.get("wind_speed_10m"),
-            "weather_code": wmo_code,
-            "description": weather_descriptions.get(wmo_code, "Unknown"),
-            "icon": weather_icons.get(wmo_code, "cloud"),
-            "city": "Baku",
-            "timezone": "Asia/Baku",
+            "weather_code": wmo,
+            "description": descs.get(wmo, "Unknown"),
+            "icon": icons.get(wmo, "cloud"),
+            "city": "Baku", "timezone": "Asia/Baku",
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         logger.error("Weather API error: %s", e)
-        raise HTTPException(status_code=503, detail="Weather data temporarily unavailable")
-
+        raise HTTPException(status_code=503, detail="Weather temporarily unavailable")
 
 # ─── App Setup ───
 
