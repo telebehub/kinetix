@@ -29,11 +29,33 @@
     --chart-4: 263 70% 50%;
     --chart-5: 43 74% 66%;
     --radius: 0.75rem;
-    --kinetix-blue: #0066FF;
-    --kinetix-dark: #0F172A;
-    --metro-red: #EF4444;
-    --bus-green: #10B981;
-    --ai-violet: #7C3AED;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 28% 22%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 215 28% 22%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 28% 22%;
+    --input: 215 28% 22%;
+    --ring: 217 100% 50%;
+    --chart-1: 217 100% 55%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 0 72% 55%;
+    --chart-4: 263 70% 55%;
+    --chart-5: 43 74% 66%;
   }
 }
 
@@ -47,28 +69,5 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', sans-serif;
-  }
-}
-
-@layer base {
-  [data-debug-wrapper="true"] {
-    display: contents !important;
-  }
-  [data-debug-wrapper="true"] > * {
-    margin-left: inherit;
-    margin-right: inherit;
-    margin-top: inherit;
-    margin-bottom: inherit;
-    padding-left: inherit;
-    padding-right: inherit;
-    padding-top: inherit;
-    padding-bottom: inherit;
-    column-gap: inherit;
-    row-gap: inherit;
-    gap: inherit;
-    border-left-width: inherit;
-    border-right-width: inherit;
-    border-top-width: inherit;
-    border-bottom-width: inherit;
   }
 }

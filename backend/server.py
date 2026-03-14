@@ -46,6 +46,8 @@ class RouteRequest(BaseModel):
     origin_id: str
     destination_id: str
     mode: str = "mixed"
+    comfort_priority: bool = True
+    accessibility: bool = False
 
 class RouteSegment(BaseModel):
     type: str
@@ -215,6 +217,17 @@ async def find_routes(req: RouteRequest):
     smart_duration = standard_duration + random.randint(3, 6)
     smart_crowding = random.randint(18, 38)
 
+    # Comfort priority: when enabled, smart route gets even lower crowding
+    # and standard gets slightly worse stats (pushing user toward comfort)
+    if req.comfort_priority:
+        smart_crowding = max(10, smart_crowding - 8)
+        standard_crowding = min(99, standard_crowding + 3)
+
+    # Accessibility: mark routes and add info
+    access_note = ""
+    if req.accessibility:
+        access_note = " (Wheelchair accessible)"
+
     # Smart route uses a transfer approach
     o_coord = STATION_COORDS.get(req.origin_id, {"lat": origin["lat"], "lng": origin["lng"]})
     d_coord = STATION_COORDS.get(req.destination_id, {"lat": destination["lat"], "lng": destination["lng"]})
@@ -235,7 +248,7 @@ async def find_routes(req: RouteRequest):
         is_recommended=True,
         total_duration=smart_duration,
         crowding_percent=smart_crowding,
-        crowding_label="Seats available, optimal comfort",
+        crowding_label="Seats available, optimal comfort" + access_note,
         segments=[
             RouteSegment(
                 type=seg1_type, line=seg1_line,
