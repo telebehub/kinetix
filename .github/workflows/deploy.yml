@@ -24,6 +24,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,6 +43,11 @@ jobs:
           CI: false
           PUBLIC_URL: /${{ github.event.repository.name }}
           REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
+
+      - name: Prepare Pages artifact files
+        run: |
+          cp build/index.html build/404.html
+          touch build/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
