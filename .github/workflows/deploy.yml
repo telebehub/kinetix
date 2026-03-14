@@ -44,10 +44,8 @@ jobs:
           PUBLIC_URL: /${{ github.event.repository.name }}
           REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
 
-      - name: Prepare Pages artifact files
-        run: |
-          cp build/index.html build/404.html
-          touch build/.nojekyll
+      - name: Validate build output
+        run: test -f build/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
