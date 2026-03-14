@@ -1,34 +1,221 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* ─── Leaflet Overrides ─── */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.leaflet-control-zoom a {
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(12px);
+  color: #0F172A !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 16px !important;
 }
 
-.App-link {
-    color: #61dafb;
+.leaflet-control-attribution {
+  display: none !important;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* ─── Custom Marker Pulse ─── */
+.marker-pulse {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0066FF;
+  position: relative;
+  box-shadow: 0 0 0 0 rgba(0,102,255, 0.5);
+  animation: pulse-ring 2s infinite;
+}
+
+.marker-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #0066FF;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(0,102,255, 0.4); }
+  70% { box-shadow: 0 0 0 16px rgba(0,102,255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,102,255, 0); }
+}
+
+@keyframes pulse-border {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.marker-destination {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #EF4444;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ─── Bottom Sheet ─── */
+.bottom-sheet {
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  touch-action: none;
+}
+
+.bottom-sheet-backdrop {
+  transition: opacity 0.3s ease;
+}
+
+/* ─── Skeleton shimmer ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ─── Route glow ─── */
+.route-recommended {
+  position: relative;
+  overflow: hidden;
+}
+
+.route-recommended::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #0066FF, #10B981);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Glass card ─── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-card-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Ticket card ─── */
+.ticket-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ticket-card::before,
+.ticket-card::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ticket-card::before {
+  left: -12px;
+}
+
+.ticket-card::after {
+  right: -12px;
+}
+
+/* ─── Crowding indicator ─── */
+.crowding-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.crowding-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ─── Nav active indicator ─── */
+.nav-active {
+  position: relative;
+}
+
+.nav-active::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  background: #0066FF;
+}
+
+/* ─── Page transitions ─── */
+.page-enter {
+  animation: fadeSlideUp 0.3s ease forwards;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Mono font for times ─── */
+.font-mono-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Radar dark map tiles ─── */
+.dark-map-tiles {
+  filter: brightness(0.7) saturate(0.8) contrast(1.1);
+}
+
+/* ─── Scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
 }
