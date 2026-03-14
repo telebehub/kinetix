@@ -44,8 +44,12 @@ jobs:
           PUBLIC_URL: /${{ github.event.repository.name }}
           REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
 
-      - name: Validate build output
-        run: test -f build/index.html
+      - name: Validate Pages artifact contents
+        run: |
+          test -f build/index.html
+          test -f build/404.html
+          test -f build/.nojekyll
+          ls -la build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
