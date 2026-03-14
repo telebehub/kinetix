@@ -3,9 +3,8 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { Radio, TrendingUp, TrendingDown, Minus, RefreshCw, TrainFront, Bus } from "lucide-react";
 import { BAKU_CENTER } from "@/data/bakuData";
 import { useSettings } from "@/contexts/SettingsContext";
+import { API } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function getCrowdingColor(c) { return c > 75 ? "#EF4444" : c > 45 ? "#F59E0B" : "#22C55E"; }
 function TrendIcon({ trend }) {

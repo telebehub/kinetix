@@ -9,9 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { API } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function DashboardPage() {
   const { t, isDark, tc } = useSettings();

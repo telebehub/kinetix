@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { API } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function getTransportIcon(tr) {
   if (tr === "metro") return <TrainFront size={16} className="text-red-500" />;

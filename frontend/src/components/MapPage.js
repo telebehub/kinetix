@@ -5,9 +5,8 @@ import { BAKU_CENTER, LOCATIONS } from "@/data/bakuData";
 import FloatingSearchBar from "@/components/FloatingSearchBar";
 import BottomSheet from "@/components/BottomSheet";
 import { useSettings } from "@/contexts/SettingsContext";
+import { API } from "@/lib/api";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const originIcon = L.divIcon({ className: "", html: '<div class="marker-pulse"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
 const destinationIcon = L.divIcon({ className: "", html: '<div class="marker-destination"></div>', iconSize: [20, 20], iconAnchor: [10, 10] });
