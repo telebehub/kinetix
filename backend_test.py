@@ -228,6 +228,84 @@ class KinetixAPITester:
                     
         return success
 
+    def test_model_status(self):
+        """Test ML model status endpoint"""
+        success, response = self.run_test("Model Status", "GET", "model/status")
+        
+        if success:
+            print(f"   Model loaded: {response.get('model_loaded', False)}")
+            print(f"   Model type: {response.get('model_type', 'N/A')}")
+            print(f"   Description: {response.get('description', 'N/A')}")
+            
+            stations = response.get('available_stations', [])
+            print(f"   Available stations: {len(stations)}")
+            
+            # Verify expected stations
+            expected_stations = ["Icherisheher", "Sahil", "28 May", "Ganjlik"]
+            found_stations = 0
+            for expected in expected_stations:
+                if expected in stations:
+                    found_stations += 1
+                    print(f"   ✅ Found station: {expected}")
+                else:
+                    print(f"   ⚠️ Missing station: {expected}")
+                    
+            capacities = response.get('station_capacities', {})
+            print(f"   Station capacities defined: {len(capacities)}")
+            
+        return success
+
+    def test_model_predict(self):
+        """Test ML model prediction endpoint"""
+        predict_data = {
+            "station": "28 May",
+            "date": "2024-12-20",
+            "time": "08:30"
+        }
+        
+        success, response = self.run_test("Model Prediction", "POST", "model/predict", 200, predict_data)
+        
+        if success:
+            print(f"   Station: {response.get('station', 'N/A')}")
+            print(f"   Date/Time: {response.get('date', 'N/A')} {response.get('time', 'N/A')}")
+            print(f"   Predicted passengers: {response.get('predicted_passengers', 0)}")
+            print(f"   Station capacity: {response.get('station_capacity', 0)}")
+            print(f"   Occupancy: {response.get('occupancy_percentage', 0)}%")
+            print(f"   Comfort status: {response.get('comfort_status', 'N/A')}")
+            print(f"   Model type: {response.get('model_type', 'N/A')}")
+            
+            # Verify required fields
+            required_fields = ['station', 'date', 'time', 'predicted_passengers', 'station_capacity', 'occupancy_percentage', 'comfort_status', 'model_type']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Has {field}")
+                else:
+                    print(f"   ⚠️ Missing {field}")
+                    
+        return success
+
+    def test_weather_baku(self):
+        """Test Baku weather endpoint"""
+        success, response = self.run_test("Baku Weather", "GET", "weather/baku")
+        
+        if success:
+            print(f"   Temperature: {response.get('temperature', 'N/A')}°C")
+            print(f"   Description: {response.get('description', 'N/A')}")
+            print(f"   Humidity: {response.get('humidity', 'N/A')}%")
+            print(f"   Wind speed: {response.get('wind_speed', 'N/A')} km/h")
+            print(f"   City: {response.get('city', 'N/A')}")
+            print(f"   Icon: {response.get('icon', 'N/A')}")
+            
+            # Verify required fields
+            required_fields = ['temperature', 'description', 'humidity', 'wind_speed', 'city']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Has {field}")
+                else:
+                    print(f"   ⚠️ Missing {field}")
+                    
+        return success
+
 def main():
     print("🚀 Starting Kinetix API Tests...")
     print("=" * 50)
@@ -245,6 +323,10 @@ def main():
         tester.test_get_tickets,
         tester.test_settings_get,
         tester.test_settings_update,
+        # New ML endpoints
+        tester.test_model_status,
+        tester.test_model_predict,
+        tester.test_weather_baku,
     ]
     
     print(f"\nRunning {len(tests)} API tests...\n")

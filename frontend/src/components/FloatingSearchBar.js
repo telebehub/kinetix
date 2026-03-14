@@ -114,7 +114,7 @@ export default function FloatingSearchBar({
               <button
                 key={loc.id}
                 data-testid={`origin-option-${loc.id}`}
-                onClick={() => handleOriginSelect(loc)}
+                onMouseDown={(e) => { e.preventDefault(); handleOriginSelect(loc); }}
                 className="w-full px-3 py-2.5 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors"
               >
                 <MapPin size={14} className={loc.type === "metro" ? "text-red-500" : loc.type === "bus_stop" ? "text-emerald-500" : "text-slate-400"} />
@@ -175,7 +175,7 @@ export default function FloatingSearchBar({
               <button
                 key={loc.id}
                 data-testid={`dest-option-${loc.id}`}
-                onClick={() => handleDestSelect(loc)}
+                onMouseDown={(e) => { e.preventDefault(); handleDestSelect(loc); }}
                 className="w-full px-3 py-2.5 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors"
               >
                 <MapPin size={14} className={loc.type === "metro" ? "text-red-500" : loc.type === "bus_stop" ? "text-emerald-500" : "text-slate-400"} />
