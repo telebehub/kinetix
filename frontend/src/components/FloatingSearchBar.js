@@ -60,8 +60,6 @@ export default function FloatingSearchBar({
     setShowDestDropdown(false);
   };
 
-  const canSearch = origin && destination && !loading;
-
   return (
     <div
       data-testid="floating-search-bar"
@@ -217,25 +215,29 @@ export default function FloatingSearchBar({
         })}
       </div>
 
-      {/* Find Route Button */}
-      {origin && destination && (
-        <button
-          data-testid="find-route-btn"
-          onClick={onFindRoute}
-          disabled={!canSearch}
-          className="w-full mt-3 py-3 bg-[#0066FF] hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-200 transition-all duration-200 active:scale-[0.98]"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            "Find Route"
-          )}
-        </button>
-      )}
+      {/* Find Route Button - always rendered, visibility controlled */}
+      <button
+        data-testid="find-route-btn"
+        onClick={onFindRoute}
+        disabled={!origin || !destination || loading}
+        className={`w-full mt-3 py-3 rounded-2xl font-bold text-sm shadow-lg transition-all duration-200 active:scale-[0.98] ${
+          origin && destination
+            ? "bg-[#0066FF] hover:bg-blue-700 text-white shadow-blue-200"
+            : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+        }`}
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Processing...
+          </span>
+        ) : origin && destination ? (
+          "Find Route"
+        ) : (
+          "Select Origin & Destination"
+        )}
+      </button>
 
       {/* Map click hint */}
       {selectingFor && (
